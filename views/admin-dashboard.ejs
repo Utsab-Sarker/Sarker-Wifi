@@ -1,0 +1,312 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Sarker WiFi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Sarker WiFi Admin</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">Admin Panel</span>
+                <a class="nav-link" href="/logout">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h4><%= totalUsers %></h4>
+                        <p>Total Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h4>৳<%= totalRevenue %></h4>
+                        <p>Monthly Revenue</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h4><%= pendingRequests.length %></h4>
+                        <p>Pending Registrations</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <h4><%= pendingComplaints.length %></h4>
+                        <p>Pending Complaints</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Pending Registrations -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Pending Registration Requests</h5>
+                    </div>
+                    <div class="card-body">
+                        <% if (pendingRequests.length > 0) { %>
+                            <% pendingRequests.forEach(request => { %>
+                                <div class="card mb-2">
+                                    <div class="card-body">
+                                        <h6><%= request.name %></h6>
+                                        <p class="mb-1"><strong>Mobile:</strong> <%= request.mobile %></p>
+                                        <p class="mb-1"><strong>Room:</strong> <%= request.roomCode %></p>
+                                        <p class="mb-1"><strong>Devices:</strong> <%= request.deviceCount %> (<%= request.deviceType %>)</p>
+                                        <small class="text-muted">Requested: <%= new Date(request.requestDate).toLocaleDateString() %></small>
+                                        <div class="mt-2">
+                                            <form method="POST" action="/admin/approve-registration/<%= request.id %>" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                            </form>
+                                            <form method="POST" action="/admin/reject-registration/<%= request.id %>" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <p class="text-muted">No pending requests</p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Complaints -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Pending Complaints</h5>
+                    </div>
+                    <div class="card-body">
+                        <% if (pendingComplaints.length > 0) { %>
+                            <% pendingComplaints.forEach(complaint => { %>
+                                <div class="card mb-2">
+                                    <div class="card-body">
+                                        <h6><%= complaint.subject %></h6>
+                                        <p class="mb-1"><%= complaint.description %></p>
+                                        <small class="text-muted">
+                                            Date: <%= new Date(complaint.date).toLocaleDateString() %>
+                                        </small>
+                                        <form method="POST" action="/admin/resolve-complaint/<%= complaint.id %>" class="mt-2">
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <select name="status" class="form-select form-select-sm" required>
+                                                        <option value="processing">Processing</option>
+                                                        <option value="resolved">Resolved</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-8">
+                                                    <div class="input-group">
+                                                        <input type="text" name="response" class="form-control form-control-sm" placeholder="Response message" required>
+                                                        <button type="submit" class="btn btn-sm btn-primary">Send</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <p class="text-muted">No pending complaints</p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Verification -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Payment Verification</h5>
+                    </div>
+                    <div class="card-body">
+                        <% 
+                        const pendingPayments = typeof paymentRecords !== 'undefined' ? 
+                            paymentRecords.filter(p => p.status === 'pending_verification') : [];
+                        %>
+                        <% if (pendingPayments.length > 0) { %>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Description</th>
+                                            <th>Amount</th>
+                                            <th>Payment Date</th>
+                                            <th>Upload Date</th>
+                                            <th>File</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% pendingPayments.forEach(payment => { %>
+                                            <% const paymentUser = users.find(u => u.id === payment.userId); %>
+                                            <tr>
+                                                <td>
+                                                    <% if (paymentUser) { %>
+                                                        <%= paymentUser.name %><br>
+                                                        <small class="text-muted"><%= paymentUser.mobile %></small>
+                                                    <% } else { %>
+                                                        Unknown User
+                                                    <% } %>
+                                                </td>
+                                                <td><%= payment.description %></td>
+                                                <td>৳<%= payment.amount %></td>
+                                                <td><%= new Date(payment.paymentDate).toLocaleDateString() %></td>
+                                                <td><%= new Date(payment.uploadDate).toLocaleDateString() %></td>
+                                                <td>
+                                                    <% if (payment.filePath) { %>
+                                                        <a href="<%= payment.filePath %>" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-file"></i> View File
+                                                        </a>
+                                                    <% } else { %>
+                                                        No file
+                                                    <% } %>
+                                                </td>
+                                                <td>
+                                                    <form method="POST" action="/admin/verify-payment/<%= payment.id %>" class="d-inline">
+                                                        <input type="hidden" name="status" value="verified">
+                                                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                                    </form>
+                                                    <form method="POST" action="/admin/verify-payment/<%= payment.id %>" class="d-inline">
+                                                        <input type="hidden" name="status" value="rejected">
+                                                        <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <% } else { %>
+                            <p class="text-muted">No pending payment verifications</p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Send Notification -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Send Notification</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="/admin/send-notification">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <select name="userId" class="form-select" required>
+                                        <option value="all">All Users</option>
+                                        <% users.forEach(user => { %>
+                                            <option value="<%= user.id %>"><%= user.name %> (<%= user.mobile %>)</option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" name="message" class="form-control" placeholder="Notification message" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-primary">Send</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users List -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>All Users</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Photo</th>
+                                        <th>Name</th>
+                                        <th>Mobile</th>
+                                        <th>Room</th>
+                                        <th>Devices</th>
+                                        <th>Monthly Amount</th>
+                                        <th>Connection Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% users.forEach(user => { %>
+                                        <tr>
+                                            <td>
+                                                <% if (user.photo) { %>
+                                                    <img src="<%= user.photo %>" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;" alt="Profile">
+                                                <% } else { %>
+                                                    <div style="width: 40px; height: 40px; background-color: #f8f9fa; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="fas fa-user text-muted"></i>
+                                                    </div>
+                                                <% } %>
+                                            </td>
+                                            <td><%= user.name %></td>
+                                            <td><%= user.mobile %></td>
+                                            <td><%= user.roomCode %></td>
+                                            <td><%= user.deviceCount %></td>
+                                            <td>৳<%= user.monthlyAmount || 0 %></td>
+                                            <td>
+                                                <form method="POST" action="/admin/update-account-status/<%= user.id %>" class="d-inline">
+                                                    <select name="accountStatus" class="form-select form-select-sm" onchange="this.form.submit()">
+                                                        <option value="active" <%= user.accountStatus === 'active' ? 'selected' : '' %>>Active</option>
+                                                        <option value="deactivated" <%= user.accountStatus === 'deactivated' ? 'selected' : '' %>>Deactivated</option>
+                                                    </select>
+                                                </form>
+                                                <% if (user.connectionStartDate && user.connectionEndDate) { %>
+                                                    <small class="text-muted d-block">Until: <%= new Date(user.connectionEndDate).toLocaleDateString() %></small>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <a href="/admin/user/<%= user.id %>" class="btn btn-sm btn-primary">Manage</a>
+                                                <form method="POST" action="/admin/delete-user/<%= user.id %>" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.')">
+                                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
